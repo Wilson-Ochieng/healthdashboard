@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Patients - ICT4D Health Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">👤 Patients</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('create_patient') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Register Patient
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Assigned CHW</label>
+                        <select name="chw_id" class="form-select">
+                            <option value="">All CHWs</option>
+                            {% for chw in chws %}
+                            <option value="{{ chw.id }}" {% if selected_chw == chw.id %}selected{% endif %}>
+                                {{ chw.name }} - {{ chw.district }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Needs Visit</label>
+                        <select name="needs_visit" class="form-select">
+                            <option value="">All Patients</option>
+                            <option value="true" {% if request.args.get('needs_visit') %}selected{% endif %}>
+                                Needs Follow-up
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Patient List -->
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Village</th>
+                <th>Assigned CHW</th>
+                <th>Status</th>
+                <th>Last Visit</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient in patients %}
+            <tr>
+                <td>{{ patient.name }}</td>
+                <td>{{ patient.age }}</td>
+                <td>{{ patient.village }}</td>
+                <td>
+                    {% set chw = chws|selectattr('id', 'equalto', patient.chw_id)|first %}
+                    {{ chw.name if chw else 'Unknown' }}
+                </td>
+                <td>
+                    {% if patient.is_pregnant %}
+                    <span class="badge bg-info">Pregnant</span>
+                    {% endif %}
+                    {% if patient.has_chronic_condition %}
+                    <span class="badge bg-warning">Chronic</span>
+                    {% endif %}
+                    {% if patient.needs_visit() %}
+                    <span class="badge bg-danger">Needs Visit</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if patient.last_visit_date %}
+                        {{ patient.last_visit_date.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        <span class="text-muted">Never</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('view_patient', patient_id=patient.id) }}" 
+                           class="btn btn-outline-primary" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{{ url_for('edit_patient', patient_id=patient.id) }}" 
+                           class="btn btn-outline-secondary" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{{ url_for('create_visit') }}?patient_id={{ patient.id }}" 
+                           class="btn btn-outline-success" title="Record Visit">
+                            <i class="bi bi-calendar-plus"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

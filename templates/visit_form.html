@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Record Health Visit{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="bi bi-calendar-plus"></i> Record Health Visit</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="patient_id" class="form-label">Patient *</label>
+                            <select class="form-select" id="patient_id" name="patient_id" required>
+                                <option value="">Select Patient</option>
+                                {% for patient in patients %}
+                                <option value="{{ patient.id }}" 
+                                        {% if selected_patient == patient.id %}selected{% endif %}>
+                                    {{ patient.name }} (Age: {{ patient.age }}) - {{ patient.village }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Please select a patient</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="chw_id" class="form-label">CHW *</label>
+                            <select class="form-select" id="chw_id" name="chw_id" required>
+                                <option value="">Select CHW</option>
+                                {% for chw in chws %}
+                                <option value="{{ chw.id }}"
+                                        {% if selected_chw == chw.id %}selected{% endif %}>
+                                    {{ chw.name }} - {{ chw.district }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Please select a CHW</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="visit_date" class="form-label">Visit Date *</label>
+                            <input type="date" class="form-control" id="visit_date" name="visit_date" 
+                                   value="{{ today }}" required>
+                            <div class="invalid-feedback">Please select visit date</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="visit_type" class="form-label">Visit Type *</label>
+                            <select class="form-select" id="visit_type" name="visit_type" required>
+                                <option value="routine">Routine Check-up</option>
+                                <option value="follow-up">Follow-up Visit</option>
+                                <option value="emergency">Emergency Visit</option>
+                            </select>
+                            <div class="invalid-feedback">Please select visit type</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Visit Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="4" 
+                                  placeholder="Describe the visit, observations, prescriptions, etc."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="is_offline_sync" 
+                                   name="is_offline_sync">
+                            <label class="form-check-label" for="is_offline_sync">
+                                This visit was recorded offline (will sync when connection is available)
+                            </label>
+                        </div>
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Check this if you're in a low-connectivity area and recording this visit offline.
+                        </small>
+                    </div>
+                    
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Record Visit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('visit_date').value = today;
+});
+
+// Auto-select CHW based on selected patient
+document.getElementById('patient_id').addEventListener('change', function() {
+    const patientId = this.value;
+    if (patientId) {
+        // You could add AJAX here to get patient's assigned CHW
+        // For now, we'll leave manual selection
+    }
+});
+
+// Form validation
+(function() {
+    'use strict';
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+{% endblock %}

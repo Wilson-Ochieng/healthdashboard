@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if chw else 'New' }} CHW - ICT4D Health Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{{ 'Edit' if chw else 'Register New' }} Community Health Worker</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ chw.name if chw else '' }}" required>
+                        <div class="invalid-feedback">Please enter CHW name</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="village" class="form-label">Village *</label>
+                            <input type="text" class="form-control" id="village" name="village" 
+                                   value="{{ chw.village if chw else '' }}" required>
+                            <div class="invalid-feedback">Please enter village</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="district" class="form-label">District *</label>
+                            <select class="form-select" id="district" name="district" required>
+                                <option value="">Select District</option>
+                                {% for district in districts %}
+                                <option value="{{ district }}" 
+                                        {% if chw and chw.district == district %}selected{% endif %}>
+                                    {{ district }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Please select district</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone Number *</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" 
+                               value="{{ chw.phone if chw else '' }}" 
+                               pattern="[0-9+\-\s]+" required>
+                        <div class="invalid-feedback">Please enter a valid phone number</div>
+                        <small class="text-muted">Format: +254 XXX XXX XXX</small>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                               {% if not chw or chw.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">Active CHW</label>
+                        <small class="text-muted d-block">Uncheck if CHW is no longer active</small>
+                    </div>
+                    
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('list_chws') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> {{ 'Update' if chw else 'Register' }} CHW
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+{% endblock %}

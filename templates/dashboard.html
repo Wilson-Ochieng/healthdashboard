@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ICT4D Health Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">📊 ICT4D Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshStats()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Total CHWs</h6>
+                    <h2 class="mb-0">{{ total_chws }}</h2>
+                    <small class="text-success">{{ active_chws }} active</small>
+                </div>
+                <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Total Patients</h6>
+                    <h2 class="mb-0">{{ total_patients }}</h2>
+                    <small class="text-warning">{{ patients_needing_visits|default(0) }} need visits</small>
+                </div>
+                <i class="bi bi-person-badge-fill text-success" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Total Visits</h6>
+                    <h2 class="mb-0">{{ total_visits }}</h2>
+                    <small class="text-info">{{ visits_this_week }} this week</small>
+                </div>
+                <i class="bi bi-calendar-check-fill text-info" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Offline Adoption</h6>
+                    <h2 class="mb-0" id="offlineRate">0%</h2>
+                    <small class="text-secondary">of visits offline</small>
+                </div>
+                <i class="bi bi-wifi-off text-warning" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5>District Performance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="districtChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('create_chw') }}" class="btn btn-primary">
+                        <i class="bi bi-person-plus-fill"></i> Register CHW
+                    </a>
+                    <a href="{{ url_for('create_patient') }}" class="btn btn-success">
+                        <i class="bi bi-person-plus-fill"></i> Register Patient
+                    </a>
+                    <a href="{{ url_for('create_visit') }}" class="btn btn-info text-white">
+                        <i class="bi bi-calendar-plus-fill"></i> Record Visit
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Visits</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>CHW</th>
+                                <th>Patient</th>
+                                <th>Type</th>
+                                <th>Offline</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for visit in recent_visits %}
+                            <tr>
+                                <td>{{ visit.visit_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% set chw = chws|selectattr('id', 'equalto', visit.chw_id)|first %}
+                                    {{ chw.name if chw else 'Unknown' }}
+                                </td>
+                                <td>
+                                    {% set patient = patients|selectattr('id', 'equalto', visit.patient_id)|first %}
+                                    {{ patient.name if patient else 'Unknown' }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if visit.visit_type == 'routine' else 'warning' if visit.visit_type == 'follow-up' else 'danger' }}">
+                                        {{ visit.visit_type }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if visit.is_offline_sync %}
+                                    <span class="badge badge-offline">📴 Offline</span>
+                                    {% else %}
+                                    <span class="badge bg-success">🌐 Online</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// District Chart
+const ctx = document.getElementById('districtChart').getContext('2d');
+const districtData = {
+    labels: [{% for district, data in districts.items() %}'{{ district }}',{% endfor %}],
+    datasets: [{
+        label: 'CHWs',
+        data: [{% for district, data in districts.items() %}{{ data.chws }},{% endfor %}],
+        backgroundColor: 'rgba(52, 152, 219, 0.5)',
+        borderColor: 'rgba(52, 152, 219, 1)',
+        borderWidth: 1
+    }, {
+        label: 'Patients',
+        data: [{% for district, data in districts.items() %}{{ data.patients }},{% endfor %}],
+        backgroundColor: 'rgba(46, 204, 113, 0.5)',
+        borderColor: 'rgba(46, 204, 113, 1)',
+        borderWidth: 1
+    }]
+};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: districtData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Refresh stats
+function refreshStats() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update offline rate
+            const offlineRate = (data.offline_visits / data.total_visits * 100).toFixed(1);
+            document.getElementById('offlineRate').textContent = offlineRate + '%';
+        });
+}
+
+// Calculate offline rate
+fetch('/api/stats')
+    .then(response => response.json())
+    .then(data => {
+        const offlineRate = ((data.offline_visits || 0) / data.total_visits * 100).toFixed(1);
+        document.getElementById('offlineRate').textContent = offlineRate + '%';
+    });
+</script>
+{% endblock %}

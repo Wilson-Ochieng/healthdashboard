@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}{{ chw.name }} - CHW Details{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-person-badge"></i> {{ chw.name }}
+        {% if chw.is_active %}
+        <span class="badge bg-success">Active</span>
+        {% else %}
+        <span class="badge bg-secondary">Inactive</span>
+        {% endif %}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ url_for('edit_chw', chw_id=chw.id) }}" class="btn btn-primary me-2">
+            <i class="bi bi-pencil"></i> Edit CHW
+        </a>
+        <a href="{{ url_for('create_visit') }}?chw_id={{ chw.id }}" class="btn btn-success">
+            <i class="bi bi-calendar-plus"></i> Record Visit
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Total Patients</h6>
+                    <h2 class="mb-0">{{ total_patients }}</h2>
+                </div>
+                <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Total Visits</h6>
+                    <h2 class="mb-0">{{ total_visits }}</h2>
+                </div>
+                <i class="bi bi-calendar-check-fill text-success" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Visits (30 days)</h6>
+                    <h2 class="mb-0">{{ visits_this_month }}</h2>
+                </div>
+                <i class="bi bi-graph-up-arrow text-info" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Patients Needing Care</h6>
+                    <h2 class="mb-0">{{ patients_needing_visits }}</h2>
+                </div>
+                <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 2rem;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CHW Information -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Contact Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="150"><i class="bi bi-geo-alt-fill text-primary"></i> Location:</th>
+                        <td>{{ chw.village }}, {{ chw.district }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-telephone-fill text-success"></i> Phone:</th>
+                        <td>{{ chw.phone }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-calendar-fill text-info"></i> Registered:</th>
+                        <td>{{ chw.date_registered.strftime('%B %d, %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-clock-fill text-warning"></i> Years Active:</th>
+                        <td>{{ chw.years_active() }} years</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('create_patient') }}?chw_id={{ chw.id }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-plus"></i> Register New Patient for {{ chw.name }}
+                    </a>
+                    <a href="{{ url_for('list_patients') }}?chw_id={{ chw.id }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-people"></i> View All Patients
+                    </a>
+                    <a href="{{ url_for('create_visit') }}?chw_id={{ chw.id }}" class="btn btn-outline-success">
+                        <i class="bi bi-calendar-plus"></i> Record New Visit
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Patients List -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Assigned Patients</h5>
+        <span class="badge bg-primary">{{ patients|length }} Total</span>
+    </div>
+    <div class="card-body">
+        {% if patients %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Status</th>
+                        <th>Last Visit</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in patients %}
+                    <tr>
+                        <td>{{ patient.name }}</td>
+                        <td>{{ patient.age }}</td>
+                        <td>
+                            {% if patient.is_pregnant %}
+                            <span class="badge bg-info">Pregnant</span>
+                            {% endif %}
+                            {% if patient.has_chronic_condition %}
+                            <span class="badge bg-warning">Chronic</span>
+                            {% endif %}
+                            {% if patient.needs_visit() %}
+                            <span class="badge bg-danger">Needs Visit</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if patient.last_visit_date %}
+                                {{ patient.last_visit_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                <span class="text-muted">No visits yet</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('view_patient', patient_id=patient.id) }}" 
+                                   class="btn btn-outline-primary" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('create_visit') }}?patient_id={{ patient.id }}" 
+                                   class="btn btn-outline-success" title="Record Visit">
+                                    <i class="bi bi-calendar-plus"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">No patients assigned yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Visits -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Visits (Last 20)</h5>
+        <span class="badge bg-success">{{ visits|length }} Recorded</span>
+    </div>
+    <div class="card-body">
+        {% if visits %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Patient</th>
+                        <th>Type</th>
+                        <th>Notes</th>
+                        <th>Sync Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in visits %}
+                    <tr>
+                        <td>{{ visit.visit_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% set patient = patients|selectattr('id', 'equalto', visit.patient_id)|first %}
+                            {{ patient.name if patient else 'Unknown' }}
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'primary' if visit.visit_type == 'routine' 
+                                                     else 'warning' if visit.visit_type == 'follow-up' 
+                                                     else 'danger' }}">
+                                {{ visit.visit_type }}
+                            </span>
+                        </td>
+                        <td>{{ visit.notes[:50] }}{% if visit.notes|length > 50 %}...{% endif %}</td>
+                        <td>
+                            {% if visit.is_offline_sync %}
+                            <span class="badge bg-warning">📴 Offline</span>
+                            {% else %}
+                            <span class="badge bg-success">🌐 Online</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center mb-0">No visits recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
