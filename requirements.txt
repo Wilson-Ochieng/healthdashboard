@@ -3,4 +3,9 @@ strawberry-graphql[flask]==0.210.0
 gunicorn==21.2.0
 pandas==2.0.3
 faker==19.3.0
+python-dotenv==1.0.0Flask==2.3.3
+strawberry-graphql[flask]==0.210.0
+gunicorn==21.2.0
+pandas==2.0.3
+faker==19.3.0
 python-dotenv==1.0.0
