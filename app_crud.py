@@ -106,8 +106,13 @@ def index():
                          total_visits=total_visits,
                          active_chws=active_chws,
                          visits_this_week=visits_this_week,
+                         patients_needing_visits=patients_needing_visits,
                          districts=districts,
-                         recent_visits=recent_visits)
+                         recent_visits=recent_visits,
+                         chws=chws,
+                         patients=patients,
+                         offline_rate=round(offline_rate, 1),
+                         current_user=current_user) 
 
 # ============== CHW CRUD ROUTES ==============
 
