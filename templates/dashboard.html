@@ -66,20 +66,88 @@
     </div>
 </div>
 
-<!-- Charts Row -->
+<!-- Charts Row 1 - District Performance and Distribution -->
 <div class="row mb-4">
-    <div class="col-md-8 mb-3">
-        <div class="card">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
             <div class="card-header">
                 <h5>District Performance</h5>
             </div>
             <div class="card-body">
-                <canvas id="districtChart" height="300"></canvas>
+                <canvas id="districtChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5>CHW Distribution by District</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chwDistrictPieChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5>Patient Distribution by District</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="patientDistrictPieChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 - Visit Types and Patient Status -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5>Visit Types</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="visitTypePieChart" height="200"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3">
-        <div class="card">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5>Patient Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="patientStatusPieChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5>CHW Active Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chwStatusPieChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3 - Sync Status and Visit Trends -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5>Offline vs Online Sync</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="syncStatusPieChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
             <div class="card-header">
                 <h5>Quick Actions</h5>
             </div>
@@ -94,6 +162,9 @@
                     <a href="{{ url_for('create_visit') }}" class="btn btn-info text-white">
                         <i class="bi bi-calendar-plus-fill"></i> Record Visit
                     </a>
+                    <a href="/graphql" target="_blank" class="btn btn-secondary">
+                        <i class="bi bi-diagram-3"></i> GraphQL API
+                    </a>
                 </div>
             </div>
         </div>
@@ -104,8 +175,9 @@
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header">
-                <h5>Recent Visits</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Visits</h5>
+                <span class="badge bg-primary">{{ recent_visits|length }} recent</span>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -138,7 +210,7 @@
                                 </td>
                                 <td>
                                     {% if visit.is_offline_sync %}
-                                    <span class="badge badge-offline">📴 Offline</span>
+                                    <span class="badge bg-warning">📴 Offline</span>
                                     {% else %}
                                     <span class="badge bg-success">🌐 Online</span>
                                     {% endif %}
@@ -156,56 +228,298 @@
 
 {% block extra_js %}
 <script>
-// District Chart
-const ctx = document.getElementById('districtChart').getContext('2d');
-const districtData = {
-    labels: [{% for district, data in districts.items() %}'{{ district }}',{% endfor %}],
-    datasets: [{
-        label: 'CHWs',
-        data: [{% for district, data in districts.items() %}{{ data.chws }},{% endfor %}],
-        backgroundColor: 'rgba(52, 152, 219, 0.5)',
-        borderColor: 'rgba(52, 152, 219, 1)',
-        borderWidth: 1
-    }, {
-        label: 'Patients',
-        data: [{% for district, data in districts.items() %}{{ data.patients }},{% endfor %}],
-        backgroundColor: 'rgba(46, 204, 113, 0.5)',
-        borderColor: 'rgba(46, 204, 113, 1)',
-        borderWidth: 1
-    }]
-};
-
-new Chart(ctx, {
-    type: 'bar',
-    data: districtData,
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true
+document.addEventListener('DOMContentLoaded', function() {
+    // ==================== DISTRICT BAR CHART ====================
+    const districtCtx = document.getElementById('districtChart').getContext('2d');
+    const districtLabels = [{% for district, data in districts.items() %}'{{ district }}',{% endfor %}];
+    const chwData = [{% for district, data in districts.items() %}{{ data.chws }},{% endfor %}];
+    const patientData = [{% for district, data in districts.items() %}{{ data.patients }},{% endfor %}];
+    
+    new Chart(districtCtx, {
+        type: 'bar',
+        data: {
+            labels: districtLabels,
+            datasets: [{
+                label: 'CHWs',
+                data: chwData,
+                backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                borderColor: 'rgba(52, 152, 219, 1)',
+                borderWidth: 1
+            }, {
+                label: 'Patients',
+                data: patientData,
+                backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                borderColor: 'rgba(46, 204, 113, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Count'
+                    }
+                }
             }
         }
-    }
+    });
+
+    // ==================== CHW DISTRICT PIE CHART ====================
+    const chwPieCtx = document.getElementById('chwDistrictPieChart').getContext('2d');
+    new Chart(chwPieCtx, {
+        type: 'pie',
+        data: {
+            labels: districtLabels,
+            datasets: [{
+                data: chwData,
+                backgroundColor: [
+                    'rgba(52, 152, 219, 0.8)',
+                    'rgba(46, 204, 113, 0.8)',
+                    'rgba(155, 89, 182, 0.8)',
+                    'rgba(241, 196, 15, 0.8)',
+                    'rgba(230, 126, 34, 0.8)',
+                    'rgba(231, 76, 60, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12 }
+                }
+            }
+        }
+    });
+
+    // ==================== PATIENT DISTRICT PIE CHART ====================
+    const patientPieCtx = document.getElementById('patientDistrictPieChart').getContext('2d');
+    new Chart(patientPieCtx, {
+        type: 'pie',
+        data: {
+            labels: districtLabels,
+            datasets: [{
+                data: patientData,
+                backgroundColor: [
+                    'rgba(52, 152, 219, 0.8)',
+                    'rgba(46, 204, 113, 0.8)',
+                    'rgba(155, 89, 182, 0.8)',
+                    'rgba(241, 196, 15, 0.8)',
+                    'rgba(230, 126, 34, 0.8)',
+                    'rgba(231, 76, 60, 0.8)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12 }
+                }
+            }
+        }
+    });
+
+    // ==================== FETCH ADDITIONAL STATS ====================
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update offline rate
+            const offlineVisits = data.offline_visits || 0;
+            const totalVisits = data.total_visits || 1;
+            const offlineRate = (offlineVisits / totalVisits * 100).toFixed(1);
+            document.getElementById('offlineRate').textContent = offlineRate + '%';
+            
+            // ==================== VISIT TYPE PIE CHART ====================
+            const visitTypeCtx = document.getElementById('visitTypePieChart').getContext('2d');
+            new Chart(visitTypeCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Routine', 'Follow-up', 'Emergency'],
+                    datasets: [{
+                        data: [
+                            data.routine_visits || 0,
+                            data.followup_visits || 0,
+                            data.emergency_visits || 0
+                        ],
+                        backgroundColor: [
+                            'rgba(52, 152, 219, 0.8)',
+                            'rgba(241, 196, 15, 0.8)',
+                            'rgba(231, 76, 60, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12 }
+                        }
+                    }
+                }
+            });
+
+            // ==================== PATIENT STATUS PIE CHART ====================
+            const patientStatusCtx = document.getElementById('patientStatusPieChart').getContext('2d');
+            new Chart(patientStatusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Pregnant', 'Chronic Condition', 'Regular'],
+                    datasets: [{
+                        data: [
+                            data.pregnant_patients || 0,
+                            data.chronic_patients || 0,
+                            data.regular_patients || 0
+                        ],
+                        backgroundColor: [
+                            'rgba(155, 89, 182, 0.8)',
+                            'rgba(230, 126, 34, 0.8)',
+                            'rgba(46, 204, 113, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12 }
+                        }
+                    }
+                }
+            });
+
+            // ==================== CHW STATUS PIE CHART ====================
+            const chwStatusCtx = document.getElementById('chwStatusPieChart').getContext('2d');
+            new Chart(chwStatusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Active CHWs', 'Inactive CHWs'],
+                    datasets: [{
+                        data: [
+                            data.active_chws || 0,
+                            (data.total_chws - (data.active_chws || 0))
+                        ],
+                        backgroundColor: [
+                            'rgba(46, 204, 113, 0.8)',
+                            'rgba(149, 165, 166, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12 }
+                        }
+                    }
+                }
+            });
+
+            // ==================== SYNC STATUS PIE CHART ====================
+            const syncStatusCtx = document.getElementById('syncStatusPieChart').getContext('2d');
+            new Chart(syncStatusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Online Sync', 'Offline Sync'],
+                    datasets: [{
+                        data: [
+                            totalVisits - offlineVisits,
+                            offlineVisits
+                        ],
+                        backgroundColor: [
+                            'rgba(46, 204, 113, 0.8)',
+                            'rgba(241, 196, 15, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12 }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching stats:', error);
+        });
 });
 
-// Refresh stats
+// Refresh stats function
 function refreshStats() {
     fetch('/api/stats')
         .then(response => response.json())
         .then(data => {
             // Update offline rate
-            const offlineRate = (data.offline_visits / data.total_visits * 100).toFixed(1);
+            const offlineRate = ((data.offline_visits || 0) / (data.total_visits || 1) * 100).toFixed(1);
             document.getElementById('offlineRate').textContent = offlineRate + '%';
+            
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                <strong>Success!</strong> Dashboard updated.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            setTimeout(() => alert.remove(), 3000);
+        })
+        .catch(error => {
+            console.error('Error refreshing stats:', error);
         });
 }
-
-// Calculate offline rate
-fetch('/api/stats')
-    .then(response => response.json())
-    .then(data => {
-        const offlineRate = ((data.offline_visits || 0) / data.total_visits * 100).toFixed(1);
-        document.getElementById('offlineRate').textContent = offlineRate + '%';
-    });
 </script>
+
+<style>
+/* Additional styles for better visualization */
+.card {
+    transition: transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+canvas {
+    max-height: 250px;
+    width: 100% !important;
+}
+
+.badge-offline {
+    background-color: #f39c12;
+    color: white;
+}
+
+.position-fixed {
+    position: fixed;
+    z-index: 9999;
+}
+</style>
 {% endblock %}

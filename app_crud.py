@@ -1,25 +1,63 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, unset_jwt_cookies, verify_jwt_in_request
+from functools import wraps
 from strawberry.flask.views import GraphQLView
 from schemas.health_schema import schema
 from models.health_models import CommunityHealthWorker, Patient, HealthVisit
+from routes.auth_routes import auth_bp, users as auth_users
 from datetime import datetime, timedelta
+import os
 import json
 
 app = Flask(__name__)
-app.secret_key = 'ict4d-secret-key-2026'  # For flash messages
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ict4d-secret-key-2026')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-2026')
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Enable in production with proper CSRF
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 
-# In-memory database (replace with real DB in production)
+# Initialize JWT
+jwt = JWTManager(app)
+# JWT error handlers
+@jwt.unauthorized_loader
+def unauthorized_callback(callback):
+    """Redirect to login when no token is provided"""
+    return redirect(url_for('auth.login_page', next=request.path))
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    """Redirect to login when token has expired"""
+    return redirect(url_for('auth.login_page', next=request.path, expired=1))
+
+@jwt.invalid_token_loader
+def invalid_token_callback(callback):
+    """Redirect to login when token is invalid"""
+    return redirect(url_for('auth.login_page', next=request.path))
+
+# Register auth blueprint
+app.register_blueprint(auth_bp)
+
+# In-memory database
 from data.sample_data import generate_sample_data
 chws, patients, visits = generate_sample_data(30, 150, 300)
 
-# Add GraphQL endpoint (for API access)
+# Merge users from auth blueprint for template access
+users = auth_users
+
+# Add GraphQL endpoint
 app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=schema, graphiql=True))
 
-# ============== DASHBOARD ROUTES ==============
-
+# ============== JWT PROTECTED ROUTES ==============
 @app.route('/')
+@jwt_required(optional=True)
 def index():
     """Main dashboard with key ICT4D metrics"""
+    # Get current user if authenticated
+    from flask_jwt_extended import get_jwt_identity
+    current_email = get_jwt_identity()
+    current_user = users.get(current_email) if current_email else None
+    
     total_chws = len(chws)
     total_patients = len(patients)
     total_visits = len(visits)
@@ -300,6 +338,7 @@ def create_visit():
 # ============== API ROUTES FOR DASHBOARD ==============
 
 @app.route('/api/stats')
+@jwt_required(optional=True)
 def api_stats():
     """JSON API for dashboard updates"""
     return jsonify({
