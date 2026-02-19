@@ -12,10 +12,13 @@ import json
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ict4d-secret-key-2026')
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-2026')
-app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
-app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Enable in production with proper CSRF
+app.config['JWT_TOKEN_LOCATION'] = ['cookies', 'headers']  # Check cookies first, then headers
+app.config['JWT_COOKIE_SECURE'] = False  # False for development (HTTP)
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Disable CSRF for development
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
+app.config['JWT_COOKIE_DOMAIN'] = None 
 
 # Initialize JWT
 jwt = JWTManager(app)
@@ -64,17 +67,27 @@ app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=sch
 @jwt_required()
 def index():
     """Main dashboard with key ICT4D metrics"""
-    # Get current user if authenticated
-    from flask_jwt_extended import get_jwt_identity
+    # Get current user
     current_email = get_jwt_identity()
-    current_user = users.get(current_email) if current_email else None
+    current_user = users.get(current_email)
     
+    if not current_user:
+        return redirect(url_for('auth.login_page'))
+    
+    # Calculate basic metrics
     total_chws = len(chws)
     total_patients = len(patients)
     total_visits = len(visits)
     active_chws = len([c for c in chws if c.is_active])
     visits_this_week = len([v for v in visits 
                            if v.visit_date > datetime.now() - timedelta(days=7)])
+    
+    # FIX: Calculate patients needing visits
+    patients_needing_visits = len([p for p in patients if p.needs_visit()])
+    
+    # Calculate offline rate
+    offline_visits = len([v for v in visits if v.is_offline_sync])
+    offline_rate = (offline_visits / total_visits * 100) if total_visits > 0 else 0
     
     # District breakdown
     districts = {}
@@ -106,13 +119,13 @@ def index():
                          total_visits=total_visits,
                          active_chws=active_chws,
                          visits_this_week=visits_this_week,
-                         patients_needing_visits=patients_needing_visits,
+                         patients_needing_visits=patients_needing_visits,  # Now defined
                          districts=districts,
                          recent_visits=recent_visits,
                          chws=chws,
                          patients=patients,
                          offline_rate=round(offline_rate, 1),
-                         current_user=current_user) 
+                         current_user=current_user)
 
 # ============== CHW CRUD ROUTES ==============
 

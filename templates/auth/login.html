@@ -78,7 +78,7 @@
             </div>
 
             <!-- Demo credentials card -->
-           
+
         </div>
     </div>
 </div>
@@ -142,119 +142,98 @@
 
     // Handle login
     async function handleLogin(event) {
-        event.preventDefault();
+    event.preventDefault();
 
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const remember = document.getElementById('remember').checked;
-        const button = document.getElementById('loginButton');
-        const spinner = document.getElementById('loginSpinner');
-        const buttonText = document.getElementById('buttonText');
-        const alertDiv = document.getElementById('alertMessage');
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const remember = document.getElementById('remember').checked;
+    const button = document.getElementById('loginButton');
+    const spinner = document.getElementById('loginSpinner');
+    const buttonText = document.getElementById('buttonText');
+    const alertDiv = document.getElementById('alertMessage');
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const next = urlParams.get('next') || '/';
+    const urlParams = new URLSearchParams(window.location.search);
+    const next = urlParams.get('next') || '/';
 
-        // Reset validation states
-        document.getElementById('email').classList.remove('is-invalid');
-        document.getElementById('password').classList.remove('is-invalid');
+    // Reset validation states
+    document.getElementById('email').classList.remove('is-invalid');
+    document.getElementById('password').classList.remove('is-invalid');
 
-        // Validate inputs
-        let hasError = false;
+    // Validate inputs
+    let hasError = false;
 
-        if (!email) {
-            document.getElementById('email').classList.add('is-invalid');
-            document.getElementById('emailError').textContent = 'Email is required';
-            hasError = true;
-        } else if (!isValidEmail(email)) {
-            document.getElementById('email').classList.add('is-invalid');
-            document.getElementById('emailError').textContent = 'Please enter a valid email address';
-            hasError = true;
-        }
+    if (!email) {
+        document.getElementById('email').classList.add('is-invalid');
+        document.getElementById('emailError').textContent = 'Email is required';
+        hasError = true;
+    } else if (!isValidEmail(email)) {
+        document.getElementById('email').classList.add('is-invalid');
+        document.getElementById('emailError').textContent = 'Please enter a valid email address';
+        hasError = true;
+    }
 
-        if (!password) {
-            document.getElementById('password').classList.add('is-invalid');
-            document.getElementById('passwordError').textContent = 'Password is required';
-            hasError = true;
-        }
+    if (!password) {
+        document.getElementById('password').classList.add('is-invalid');
+        document.getElementById('passwordError').textContent = 'Password is required';
+        hasError = true;
+    }
 
-        if (hasError) return;
+    if (hasError) return;
 
-        // Show loading state
-        button.disabled = true;
-        spinner.classList.remove('d-none');
-        buttonText.textContent = 'Logging in...';
-        alertDiv.classList.add('d-none');
+    // Show loading state
+    button.disabled = true;
+    spinner.classList.remove('d-none');
+    buttonText.textContent = 'Logging in...';
+    alertDiv.classList.add('d-none');
 
-        try {
-            const response = await fetch('/auth/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    email: email,
-                    password: password,
-                    remember: remember
-                })
-            });
+    try {
+        const response = await fetch('/auth/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password,
+                remember: remember
+            })
+        });
 
-            const data = await response.json();
+        const data = await response.json();
 
-            if (response.ok) {
-                // Show success message
-                alertDiv.className = 'alert alert-success';
-                alertDiv.innerHTML = `
+        if (response.ok) {
+            // Show success message
+            alertDiv.className = 'alert alert-success';
+            alertDiv.innerHTML = `
                 <div class="d-flex align-items-center">
                     <i class="bi bi-check-circle-fill me-2"></i>
                     <div>
                         <strong>Login successful!</strong> Redirecting to dashboard...
                     </div>
                 </div>
-                `;
-                alertDiv.classList.remove('d-none');
+            `;
+            alertDiv.classList.remove('d-none');
 
-                // Store user info in session storage for UI
-                sessionStorage.setItem('user', JSON.stringify(data.user));
+            // Store user info
+            sessionStorage.setItem('user', JSON.stringify(data.user));
 
-                // Redirect to dashboard after short delay
-                setTimeout(() => {
-                    window.location.href = next;
-                }, 1000);
-            } else {
-                // Show error
-                alertDiv.className = 'alert alert-danger';
-                alertDiv.innerHTML = `
+            // Debug: Check cookies after login
+            console.log('Cookies after login:', document.cookie);
+
+            // Redirect to dashboard
+            setTimeout(() => {
+                window.location.href = next;
+            }, 1000);
+        } else {
+            // Show error
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.innerHTML = `
                 <div class="d-flex align-items-center">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
                     <div>
                         <strong>Login failed!</strong> ${data.error || 'Invalid email or password'}
                     </div>
                 </div>
-                `;
-                alertDiv.classList.remove('d-none');
-
-                // Reset button
-                button.disabled = false;
-                spinner.classList.add('d-none');
-                buttonText.textContent = 'Login';
-
-                // Shake animation on error
-                document.querySelector('.card').style.animation = 'shake 0.5s';
-                setTimeout(() => {
-                    document.querySelector('.card').style.animation = '';
-                }, 500);
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alertDiv.className = 'alert alert-danger';
-            alertDiv.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <div>
-                    <strong>Connection error!</strong> Please check your internet connection.
-                </div>
-            </div>
             `;
             alertDiv.classList.remove('d-none');
 
@@ -263,8 +242,25 @@
             spinner.classList.add('d-none');
             buttonText.textContent = 'Login';
         }
-    }
+    } catch (error) {
+        console.error('Error:', error);
+        alertDiv.className = 'alert alert-danger';
+        alertDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>
+                    <strong>Connection error!</strong> Please check your internet connection.
+                </div>
+            </div>
+        `;
+        alertDiv.classList.remove('d-none');
 
+        // Reset button
+        button.disabled = false;
+        spinner.classList.add('d-none');
+        buttonText.textContent = 'Login';
+    }
+}
     // Add shake animation for errors
     const style = document.createElement('style');
     style.textContent = `
@@ -295,7 +291,7 @@
 
         // FIXED: Check if user is already logged in without causing redirect loops
         const token = getCookie('access_token');
-        
+
         // Only check if we're not already on the login page with a next parameter (prevents loop)
         if (token && !window.location.pathname.includes('/auth/login')) {
             fetch('/auth/api/me', {
@@ -303,16 +299,16 @@
                     'Authorization': 'Bearer ' + token
                 }
             })
-            .then(response => {
-                if (response.ok) {
-                    // User is already logged in and not on login page, redirect to dashboard
-                    window.location.href = '/';
-                }
-            })
-            .catch(() => {
-                // Not logged in, stay on login page
-                console.log('Not authenticated');
-            });
+                .then(response => {
+                    if (response.ok) {
+                        // User is already logged in and not on login page, redirect to dashboard
+                        window.location.href = '/';
+                    }
+                })
+                .catch(() => {
+                    // Not logged in, stay on login page
+                    console.log('Not authenticated');
+                });
         }
     });
 
