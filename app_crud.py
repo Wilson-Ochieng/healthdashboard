@@ -20,21 +20,32 @@ app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 # Initialize JWT
 jwt = JWTManager(app)
 # JWT error handlers
+# JWT error handlers
 @jwt.unauthorized_loader
 def unauthorized_callback(callback):
-    """Redirect to login when no token is provided"""
+    """Handle unauthorized access"""
+    # Check if the request wants JSON (API call)
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    # For HTML requests, redirect to login
     return redirect(url_for('auth.login_page', next=request.path))
 
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
-    """Redirect to login when token has expired"""
+    """Handle expired token"""
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Token has expired'}), 401
+    
     return redirect(url_for('auth.login_page', next=request.path, expired=1))
 
 @jwt.invalid_token_loader
 def invalid_token_callback(callback):
-    """Redirect to login when token is invalid"""
+    """Handle invalid token"""
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Invalid token'}), 401
+    
     return redirect(url_for('auth.login_page', next=request.path))
-
 # Register auth blueprint
 app.register_blueprint(auth_bp)
 
@@ -50,7 +61,7 @@ app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=sch
 
 # ============== JWT PROTECTED ROUTES ==============
 @app.route('/')
-@jwt_required(optional=True)
+@jwt_required()
 def index():
     """Main dashboard with key ICT4D metrics"""
     # Get current user if authenticated
@@ -338,7 +349,7 @@ def create_visit():
 # ============== API ROUTES FOR DASHBOARD ==============
 
 @app.route('/api/stats')
-@jwt_required(optional=True)
+@jwt_required()
 def api_stats():
     """JSON API for dashboard updates"""
     return jsonify({
