@@ -4,3 +4,7 @@ gunicorn==21.2.0
 pandas==2.0.3
 faker==19.3.0
 python-dotenv==1.0.0
+flask-jwt-extended==4.5.2
+flask-mail==0.9.1
+itsdangerous==2.1.2
+bcrypt==4.0.1
